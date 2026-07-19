@@ -31,6 +31,7 @@
             bottom: 0;
             left: 0;
             border-right: 1px solid #111;
+            z-index: 10;
         }
         .brand h1 {
             font-size: 1.3rem;
@@ -71,7 +72,6 @@
             flex-direction: column;
             gap: 16px;
         }
-        /* Tiny SVG ArtStation Icon stylized in signature orange */
         .artstation-icon img {
             width: 20px;
             height: 20px;
@@ -114,6 +114,7 @@
             border-radius: 4px;
             overflow: hidden;
             transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
         }
         .portfolio-item:hover {
             transform: translateY(-2px);
@@ -137,12 +138,113 @@
             color: #888888;
         }
 
+        /* MODAL OVERLAY STYLING */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-container {
+            background-color: #111111;
+            border: 1px solid #222222;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: 6px;
+            overflow-y: auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2rem;
+            background: none;
+            border: none;
+            color: #888888;
+            cursor: pointer;
+            transition: color 0.2s;
+            z-index: 110;
+        }
+        .modal-close:hover {
+            color: #ffffff;
+        }
+        .modal-hero-img {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            background-color: #0b0b0b;
+            display: block;
+        }
+        .modal-body {
+            padding: 30px;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .modal-subtitle {
+            font-size: 0.95rem;
+            color: #ff6600;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .modal-description {
+            font-size: 0.95rem;
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            white-space: pre-line; /* Keeps line breaks from description text */
+        }
+        .modal-meta-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #666666;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .modal-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background-color: #222222;
+            color: #aaaaaa;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: 1px solid #333333;
+        }
+
         /* Mobile Optimization */
         @media (max-width: 768px) {
             body { flex-direction: column; }
             .sidebar { width: 100%; position: relative; padding: 24px; border-right: none; border-bottom: 1px solid #222; }
             .main-content { margin-left: 0; padding: 24px; }
             .nav-links { margin-top: 24px; flex-direction: row; gap: 24px; }
+            .modal-container { width: 95%; max-height: 95vh; }
+            .modal-body { padding: 20px; }
         }
     </style>
 </head>
@@ -157,13 +259,11 @@
             </div>
             <nav class="nav-links">
                 <a href="#" class="active">Home</a>
-                <!-- Link your ArtStation account or custom resume here -->
                 <a href="https://lunrabyss.artstation.com/" target="_blank">Full Portfolio</a> 
             </nav>
         </div>
         
         <div class="sidebar-footer">
-            <!-- Orange ArtStation Icon Link -->
             <a href="https://www.artstation.com/" target="_blank" class="artstation-icon">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/artstation.svg" alt="ArtStation">
             </a>
@@ -179,7 +279,11 @@
         <div class="portfolio-grid">
             
             <!-- Item 1: Holy Sword -->
-            <div class="portfolio-item">
+            <div class="portfolio-item" 
+                 data-title="Holy Sword" 
+                 data-subtitle="3D Hard-Surface Weapon Model"
+                 data-desc="A fantasy greatsword concept featuring an aggressive silhouette, a central geometric cutout, and detailed hilt paneling. This asset was built with game-ready pipeline optimization in mind, focusing on clean topology and distinct edge highlights."
+                 data-tags="Blender 3D, Hard-Surface, Game Prop, Weapon Modeling">
                 <img src="BigSwordWithHoleBetterRender.jpg" alt="Holy Sword">
                 <div class="portfolio-info">
                     <h3>Holy Sword</h3>
@@ -188,7 +292,11 @@
             </div>
 
             <!-- Item 2: Fractal Pyramid -->
-            <div class="portfolio-item">
+            <div class="portfolio-item" 
+                 data-title="Sierpinski Fractal Pyramid" 
+                 data-subtitle="Atmospheric Environment Prop"
+                 data-desc="An abstract, hard-surface environment piece exploring complex fractal geometry and atmospheric rendering in Blender. The structure utilizes repeating geometric patterns to create an intricate, monolithic sci-fi asset."
+                 data-tags="Blender 3D, Procedural Modeling, Volumetrics, Sci-Fi Asset">
                 <img src="images/FractalPyramid.png" alt="Fractal Pyramid">
                 <div class="portfolio-info">
                     <h3>Sierpinski Fractal Pyramid</h3>
@@ -196,10 +304,89 @@
                 </div>
             </div>
 
-            <!-- Add more item blocks as you make more models! -->
-
         </div>
     </main>
+
+    <!-- POP-UP MODAL OVERLAY -->
+    <div class="modal-overlay" id="portfolioModal">
+        <div class="modal-container">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <img src="" alt="Project Preview" class="modal-hero-img" id="modalImg">
+            <div class="modal-body">
+                <h2 class="modal-title" id="modalTitle">Project Title</h2>
+                <div class="modal-subtitle" id="modalSubtitle">Sub Category</div>
+                <div class="modal-description" id="modalDesc">Detailed description text goes here.</div>
+                
+                <div class="modal-meta-title">Software & Tags</div>
+                <div class="modal-tags" id="modalTags">
+                    <!-- Dynamic tags generate here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE SCRIPT LOGIC -->
+    <script>
+        const modal = document.getElementById('portfolioModal');
+        const closeModalBtn = document.getElementById('closeModal');
+        const portfolioItems = document.querySelectorAll('.portfolio-item');
+
+        // Modal elements to update dynamically
+        const modalImg = document.getElementById('modalImg');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSubtitle = document.getElementById('modalSubtitle');
+        const modalDesc = document.getElementById('modalDesc');
+        const modalTagsContainer = document.getElementById('modalTags');
+
+        // Open modal and map data when clicking an item
+        portfolioItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const imgUrl = item.querySelector('img').src;
+                const title = item.getAttribute('data-title');
+                const subtitle = item.getAttribute('data-subtitle');
+                const desc = item.getAttribute('data-desc');
+                const tagsRaw = item.getAttribute('data-tags');
+
+                // Map data elements
+                modalImg.src = imgUrl;
+                modalImg.alt = title;
+                modalTitle.textContent = title;
+                modalSubtitle.textContent = subtitle;
+                modalDesc.textContent = desc;
+
+                // Clear out past tags and generate new tags list
+                modalTagsContainer.innerHTML = '';
+                if(tagsRaw) {
+                    const tagsArray = tagsRaw.split(',');
+                    tagsArray.forEach(tag => {
+                        const span = document.createElement('span');
+                        span.classList.add('tag');
+                        span.textContent = tag.trim();
+                        modalTagsContainer.appendChild(span);
+                    });
+                }
+
+                // Show modal overlay
+                modal.classList.add('open');
+                document.body.style.overflow = 'hidden'; // Stop background scrolling
+            });
+        });
+
+        // Close functions
+        const closeModal = () => {
+            modal.classList.remove('open');
+            document.body.style.overflow = ''; // Restore scrolling
+        };
+
+        closeModalBtn.addEventListener('click', closeModal);
+        
+        // Close modal if clicking outside the container dark card
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
 
 </body>
 </html>
