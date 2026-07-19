@@ -186,13 +186,47 @@
         .modal-close:hover {
             color: #ffffff;
         }
-        .modal-hero-img {
+
+        /* IMAGE VIEWER AREA WITH SLIDER CONTROLS */
+        .modal-viewer {
+            position: relative;
             width: 100%;
-            max-height: 500px;
-            object-fit: contain;
+            height: 500px;
             background-color: #0b0b0b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-hero-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             display: block;
         }
+        
+        /* Slider Arrows */
+        .slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333333;
+            color: #ffffff;
+            font-size: 1.5rem;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+            user-select: none;
+            display: none; /* Hidden by default, shown via JS if multiple images exist */
+        }
+        .slider-btn:hover {
+            background-color: #ff6600;
+            color: #000000;
+        }
+        .slider-btn.prev { left: 20px; }
+        .slider-btn.next { right: 20px; }
+
         .modal-body {
             padding: 30px;
         }
@@ -213,7 +247,7 @@
             color: #cccccc;
             line-height: 1.6;
             margin-bottom: 25px;
-            white-space: pre-line; /* Keeps line breaks from description text */
+            white-space: pre-line;
         }
         .modal-meta-title {
             font-size: 0.85rem;
@@ -244,6 +278,8 @@
             .main-content { margin-left: 0; padding: 24px; }
             .nav-links { margin-top: 24px; flex-direction: row; gap: 24px; }
             .modal-container { width: 95%; max-height: 95vh; }
+            .modal-viewer { height: 300px; }
+            .slider-btn { padding: 8px 12px; font-size: 1.2rem; }
             .modal-body { padding: 20px; }
         }
     </style>
@@ -278,26 +314,28 @@
     <main class="main-content">
         <div class="portfolio-grid">
             
-            <!-- Item 1: Holy Sword -->
+            <!-- Item 1: Holy Sword (Has 3 Images listed in data-images) -->
             <div class="portfolio-item" 
                  data-title="Holy Sword" 
                  data-subtitle="3D Hard-Surface Weapon Model"
                  data-desc="A fantasy greatsword concept featuring an aggressive silhouette, a central geometric cutout, and detailed hilt paneling. This asset was built with game-ready pipeline optimization in mind, focusing on clean topology and distinct edge highlights."
-                 data-tags="Blender 3D, Hard-Surface, Game Prop, Weapon Modeling">
-                <img src="BigSwordWithHoleBetterRender.jpg" alt="Holy Sword">
+                 data-tags="Blender 3D, Hard-Surface, Game Prop, Weapon Modeling"
+                 data-images="BigSwordWithHoleBetterRender.jpg, BigSwordWithHoleBetterRender2.jpg, BigSwordWithHoleBetterRender3.jpg">
+                <img src="BigSwordWithHoleBetterRender.jpg" alt="Holy Sword Thumbnail">
                 <div class="portfolio-info">
                     <h3>Holy Sword</h3>
                     <p>3D Hard-Surface Weapon Model</p>
                 </div>
             </div>
 
-            <!-- Item 2: Fractal Pyramid -->
+            <!-- Item 2: Fractal Pyramid (Has 1 Image) -->
             <div class="portfolio-item" 
                  data-title="Sierpinski Fractal Pyramid" 
                  data-subtitle="Atmospheric Environment Prop"
                  data-desc="An abstract, hard-surface environment piece exploring complex fractal geometry and atmospheric rendering in Blender. The structure utilizes repeating geometric patterns to create an intricate, monolithic sci-fi asset."
-                 data-tags="Blender 3D, Procedural Modeling, Volumetrics, Sci-Fi Asset">
-                <img src="images/FractalPyramid.png" alt="Fractal Pyramid">
+                 data-tags="Blender 3D, Procedural Modeling, Volumetrics, Sci-Fi Asset"
+                 data-images="images/FractalPyramid.png">
+                <img src="images/FractalPyramid.png" alt="Fractal Pyramid Thumbnail">
                 <div class="portfolio-info">
                     <h3>Sierpinski Fractal Pyramid</h3>
                     <p>Atmospheric Environment Prop</p>
@@ -311,54 +349,84 @@
     <div class="modal-overlay" id="portfolioModal">
         <div class="modal-container">
             <button class="modal-close" id="closeModal">&times;</button>
-            <img src="" alt="Project Preview" class="modal-hero-img" id="modalImg">
+            
+            <!-- Viewer Window with Slider Controls -->
+            <div class="modal-viewer">
+                <button class="slider-btn prev" id="prevBtn">&#10094;</button>
+                <img src="" alt="Project Preview" class="modal-hero-img" id="modalImg">
+                <button class="slider-btn next" id="nextBtn">&#10095;</button>
+            </div>
+            
             <div class="modal-body">
                 <h2 class="modal-title" id="modalTitle">Project Title</h2>
                 <div class="modal-subtitle" id="modalSubtitle">Sub Category</div>
                 <div class="modal-description" id="modalDesc">Detailed description text goes here.</div>
                 
                 <div class="modal-meta-title">Software & Tags</div>
-                <div class="modal-tags" id="modalTags">
-                    <!-- Dynamic tags generate here -->
-                </div>
+                <div class="modal-tags" id="modalTags"></div>
             </div>
         </div>
     </div>
 
-    <!-- INTERACTIVE SCRIPT LOGIC -->
+    <!-- INTERACTIVE SLIDER SCRIPT LOGIC -->
     <script>
         const modal = document.getElementById('portfolioModal');
         const closeModalBtn = document.getElementById('closeModal');
         const portfolioItems = document.querySelectorAll('.portfolio-item');
 
-        // Modal elements to update dynamically
+        // Modal Elements
         const modalImg = document.getElementById('modalImg');
         const modalTitle = document.getElementById('modalTitle');
         const modalSubtitle = document.getElementById('modalSubtitle');
         const modalDesc = document.getElementById('modalDesc');
         const modalTagsContainer = document.getElementById('modalTags');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
 
-        // Open modal and map data when clicking an item
+        // Tracking images array inside active item
+        let currentImages = [];
+        let currentImgIndex = 0;
+
+        // Open modal logic
         portfolioItems.forEach(item => {
             item.addEventListener('click', () => {
-                const imgUrl = item.querySelector('img').src;
                 const title = item.getAttribute('data-title');
                 const subtitle = item.getAttribute('data-subtitle');
                 const desc = item.getAttribute('data-desc');
                 const tagsRaw = item.getAttribute('data-tags');
+                const imagesRaw = item.getAttribute('data-images');
 
-                // Map data elements
-                modalImg.src = imgUrl;
+                // Clear & Setup Images Array
+                currentImages = [];
+                currentImgIndex = 0;
+                
+                if (imagesRaw) {
+                    currentImages = imagesRaw.split(',').map(img => img.trim());
+                } else {
+                    // Fallback to thumbnail if data-images is accidentally left empty
+                    currentImages.push(item.querySelector('img').src);
+                }
+
+                // Initial image render
+                modalImg.src = currentImages[0];
                 modalImg.alt = title;
                 modalTitle.textContent = title;
                 modalSubtitle.textContent = subtitle;
                 modalDesc.textContent = desc;
 
-                // Clear out past tags and generate new tags list
+                // Toggle Arrow Visibility based on number of images
+                if (currentImages.length > 1) {
+                    prevBtn.style.display = 'block';
+                    nextBtn.style.display = 'block';
+                } else {
+                    prevBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                }
+
+                // Render dynamic tags
                 modalTagsContainer.innerHTML = '';
                 if(tagsRaw) {
-                    const tagsArray = tagsRaw.split(',');
-                    tagsArray.forEach(tag => {
+                    tagsRaw.split(',').forEach(tag => {
                         const span = document.createElement('span');
                         span.classList.add('tag');
                         span.textContent = tag.trim();
@@ -366,25 +434,42 @@
                     });
                 }
 
-                // Show modal overlay
                 modal.classList.add('open');
-                document.body.style.overflow = 'hidden'; // Stop background scrolling
+                document.body.style.overflow = 'hidden';
             });
         });
 
-        // Close functions
+        // Slider Navigation Logic
+        const showNextImage = () => {
+            currentImgIndex = (currentImgIndex + 1) % currentImages.length;
+            modalImg.src = currentImages[currentImgIndex];
+        };
+
+        const showPrevImage = () => {
+            currentImgIndex = (currentImgIndex - 1 + currentImages.length) % currentImages.length;
+            modalImg.src = currentImages[currentImgIndex];
+        };
+
+        nextBtn.addEventListener('click', showNextImage);
+        prevBtn.addEventListener('click', showPrevImage);
+
+        // Close logic
         const closeModal = () => {
             modal.classList.remove('open');
-            document.body.style.overflow = ''; // Restore scrolling
+            document.body.style.overflow = '';
         };
 
         closeModalBtn.addEventListener('click', closeModal);
-        
-        // Close modal if clicking outside the container dark card
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
+            if (e.target === modal) closeModal();
+        });
+        
+        // Bonus: Arrow keys control the slider while open
+        document.addEventListener('keydown', (e) => {
+            if (!modal.classList.contains('open')) return;
+            if (e.key === 'ArrowRight' && currentImages.length > 1) showNextImage();
+            if (e.key === 'ArrowLeft' && currentImages.length > 1) showPrevImage();
+            if (e.key === 'Escape') closeModal();
         });
     </script>
 
